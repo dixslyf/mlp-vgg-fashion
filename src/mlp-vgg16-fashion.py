@@ -1,4 +1,5 @@
 # ---
+# title: "A Comparison of Multilayer Perceptron and VGG-16 Models for Fashion Image Classification"
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: -all
@@ -14,7 +15,7 @@
 # ---
 
 # %% [markdown]
-# # Preamble
+# ## Introduction
 
 # %% [markdown]
 # This notebook develops three models for image classification on a dataset containing images of clothes and accessories. The three models are as follows:
@@ -30,12 +31,19 @@
 # The development of the models follows a typical machine learning pipeline:
 #
 # 1. **Data analysis:** Quick exploration of the dataset to understand its structure, class distribution and potential issues such as class imbalance.
-# 2. **Data preprocessing:** Preparation of the data by dividing the dataset into train, validation and test splits, normalising pixel values, label encoding the target feature and defining an undersampling procedure.
-# 3. **Hyperparameter tuning:** Tuning of hyperparameters like learning rate, batch size and number of layers to optimise each model’s performance. Hyperparameter tuning was achieved using [Optuna](https://optuna.org/). Each model has different hyperparameters to tune — these will be discussed more extensively later.
-# 4. **Training:** Training of the models on the train split using the best set of hyperparameters determined by the hyperparameter tuning procedure.
-# 5. **Evaluation:** Evaluation of the models on the test split using confusion matrices and metrics like accuracy and F1-score. Additionally, we will analyse each model's loss curves using Tensorboard. The performance of the models will be compared.
+#
+# 1. **Data preprocessing:** Preparation of the data by dividing the dataset into train, validation and test splits, normalising pixel values, label encoding the target feature and defining an undersampling procedure.
+#
+# 1. **Hyperparameter tuning:** Tuning of hyperparameters like learning rate, batch size and number of layers to optimise each model’s performance. Hyperparameter tuning was achieved using [Optuna](https://optuna.org/). Each model has different hyperparameters to tune — these will be discussed more extensively later.
+#
+# 1. **Training:** Training of the models on the train split using the best set of hyperparameters determined by the hyperparameter tuning procedure.
+#
+# 1. **Evaluation:** Evaluation of the models on the test split using confusion matrices and metrics like accuracy and F1-score. Additionally, we will analyse each model's loss curves using Tensorboard. The performance of the models will be compared.
 #
 # Note that this notebook will take *several hours* to run. I highly recommend running it on Kaggle instead of Google Colab as Kaggle tends to be more generous with its GPU usage.
+
+# %% [markdown]
+# ## Preamble
 
 # %% [markdown]
 # We'll start by installing additional libraries we need:
@@ -128,12 +136,12 @@ N_EPOCHS_TRAIN: int = 30
 PRUNE_TRIALS: bool = True
 
 # %% [markdown]
-# # Data
+# ## Data
 #
 # This section includes the downloading of the dataset, preliminary analysis and preprocessing steps.
 
 # %% [markdown]
-# ## Downloading the Dataset
+# ### Downloading the Dataset
 #
 # First, we need to download the dataset. We'll download it directly from Google Drive using the `gdown` library:
 
@@ -150,7 +158,7 @@ gdown.cached_download(DATASET_GDRIVE_URL, DATASET_OUT_PATH, fuzzy=True, postproc
 # !ls data
 
 # %% [markdown]
-# ## Custom `Dataset`
+# ### Custom `Dataset`
 
 # %% [markdown]
 # To load the images from the dataset, we need to define a custom PyTorch `Dataset`:
@@ -362,7 +370,7 @@ print(f"Categories: {ds.categories}")
 # The dataset has 3849 samples, which is relatively small compared to other image datasets.
 
 # %% [markdown]
-# ## Preliminary Analysis
+# ### Preliminary Analysis
 
 # %% [markdown]
 # To start, I'll plot some of the images to have a feel of what the images look like:
@@ -409,10 +417,10 @@ sns.displot(list(ds.targets()), height=8, aspect=10/8)
 
 
 # %% [markdown]
-# ## Preprocessing
+# ### Preprocessing
 
 # %% [markdown]
-# ### Normalisation and Label Encoding
+# #### Normalisation and Label Encoding
 #
 # Now, to prepare the data for use, we'll first normalise the pixel values. The raw images have pixel values that range from 0 to 255, so we can normalise them by simply dividing each value by 255:
 
@@ -452,7 +460,7 @@ target_le.classes_
 set(ds.targets())
 
 # %% [markdown]
-# ### Splitting the Dataset
+# #### Splitting the Dataset
 #
 # As briefly mentioned earlier, I do not use the test split provided by the dataset as it only contains 8 samples and does not contain labels. I instead perform my own train-validation-test split with a ratio of `70:15:15`.
 #
@@ -494,7 +502,7 @@ print(f"Size of test split: {len(ds_test)}")
 
 
 # %% [markdown]
-# ### Undersampling
+# #### Undersampling
 #
 # As mentioned earlier, the dataset has a class imbalance problem, where "shoes" and "tees" have many more samples than the other classes. To combat this, I will use undersampling, by which "shoes" and "tees" samples have a lower chance of being sampled. We'll create a `WeightedRandomSampler` to give smaller weights to the "shoes" and "tee" classes. This sampler will be passed to a `DataLoader` later during training and hyperparameter tuning.
 #
@@ -526,7 +534,7 @@ undersampler = make_undersampler(torch.tensor(np.fromiter(ds_train.targets(), dt
 # The undersampler created here (`undersampler`) is **only for the real training** process that will use the entire train split. Each iteration of K-fold cross-validation during hyperparameter tuning will call the `make_undersampler()` function with its own train set to create its own undersampler.
 
 # %% [markdown]
-# # Model Definitions
+# ## Model Definitions
 #
 # This section contains definitions for each model (MLP, VGG-16 and pretrained VGG-16).
 #
@@ -535,7 +543,7 @@ undersampler = make_undersampler(torch.tensor(np.fromiter(ds_train.targets(), dt
 # **Note:** For visualisations of the architectures of the final models, please see the Training and Evaluation section. The model architectures defined here are "semi-fixed" — some architectural decisions are treated as hyperparameters that need to be tuned, so the models are not instantiated until then.
 
 # %% [markdown]
-# ## Multilayer Perceptron
+# ### Multilayer Perceptron
 #
 # Since it is not obvious what MLP architecture would work best for the dataset, the `MultilayerPercecptron` class below provides a semi-fixed architecture and allows specifying the activation function to use and the number of layers and their corresponding sizes. These are treated as hyperparameters to be tuned.
 #
@@ -576,7 +584,7 @@ class MultilayerPerceptron(torch.nn.Module):
 # **Note:** For visualisation of the architecture of the final model, please see the Training and Evaluation section.
 
 # %% [markdown]
-# ## VGG-16
+# ### VGG-16
 #
 # The VGG-16 model follows the original VGG-16 architecture (configuration D) proposed in [Very Deep Convultional Networks for Large-Scale Image Recognition](https://arxiv.org/abs/1409.1556):
 #
@@ -651,7 +659,7 @@ class VGG16(torch.nn.Module):
 # **Note:** For visualisation of the architecture of the final model, please see the Training and Evaluation section.
 
 # %% [markdown]
-# ## VGG-16 Pretrained
+# ### VGG-16 Pretrained
 #
 # The architecture of VGG-16 has already been discussed in the previous section.
 #
@@ -694,7 +702,7 @@ make_vgg16_pretrained()
 
 
 # %% [markdown]
-# # Definitions for Training and Evaluation
+# ## Definitions for Training and Evaluation
 #
 # Before proceeding further, we'll define the necessary functions and classes needed ahead of time for hyperparameter tuning, training and evaluation so that the notebook is more readable. I suggest reading the documentation for each class to get a better understanding of their capabilities.
 #
@@ -1267,7 +1275,7 @@ def train_eval_generic_params(
 
 
 # %% [markdown]
-# # Hyperparameter Tuning
+# ## Hyperparameter Tuning
 #
 # I'll be using the Optuna library for hyperparameter tuning. Optuna uses Bayesian optimisation (at least by default — there are other optimisation methods it provides, but I used Bayesian optimisation) to find the best set of hyperparameters. Based on the performance from past hyperparameter sets, it tries to select promising hyperparameters. Unlike the traditional grid search and random search, Bayesian optimisation can reduce the number of trials needed to find an optimal set of hyperparameters.
 #
@@ -1441,7 +1449,7 @@ def make_objective(
 
 
 # %% [markdown]
-# ## Multilayer Perceptron
+# ### Multilayer Perceptron
 #
 # The hyperparameters for the MLP are as follows:
 #
@@ -1525,7 +1533,7 @@ mlp_study.best_params
 # Interestingly, the hyperparameter tuning process indicates that the MLP performed best without performing any data augmentation. However, images had to be resized to 64 by 64. The size of each layer also seems rather small.
 
 # %% [markdown]
-# ## VGG-16
+# ### VGG-16
 #
 # For the custom VGG16 model, there is only one model-specific hyperparameter to tune since the model's architecture is mostly fixed. The hyperparameter is whether to use batch normalisation. As mentioned earlier, I found that the model struggled to learn (loss would not decrease) when batch normalisation is not applied after each convolutional layer, which could be because the VGG-16 architecture is rather deep, so it is prone to the vanishing / exploding gradient problem. Batch normalisation may have helped to stabilise the gradients.
 
@@ -1566,7 +1574,7 @@ vgg16_study.best_params
 # Like the MLP, the best hyperparameters include resizing of the images to 64 by 64. However, this time, VGG-16 seems to perform best when some data augmentation is applied (colour jittering and random horizontal flip). Furthermore, batch normalisation should be used.
 
 # %% [markdown]
-# ## VGG-16 Pretrained
+# ### VGG-16 Pretrained
 #
 # No model-specific hyperparameters were tuned for the pre-trained VGG-16 model since its architecture is fixed. However, in the future, I may want to consider whether to freeze the convolutional layers.
 #
@@ -1607,7 +1615,7 @@ vgg16_pretrained_study.best_params
 # Interestingly, the pretrained VGG-16 model performed best without any data augmentation, like the MLP.
 
 # %% [markdown]
-# # Training and Evaluation
+# ## Training and Evaluation
 #
 # Finally, with the best set of hyperparameters determined for each model, we can perform the real training and evaluation. I first define a helper function to display the evaluation results, including a classification report containing various metrics, a confusion matrix and a visualisation of some of the predictions.
 
@@ -1687,7 +1695,7 @@ writer.add_custom_scalars({
 # **Note:** For each model, its architecture will be shown before the training and evaluation begin.
 
 # %% [markdown]
-# ## Multilayer Perceptron
+# ### Multilayer Perceptron
 
 # %%
 mlp = mlp_from_params(mlp_study.best_params)
@@ -1736,7 +1744,7 @@ display_results(
 # Future improvements could focus on improving the model's ability to distinguish between knitwear, shirts and tees, perhaps using methods like patch-based learning to allow the model to focus on the specific areas of the images (such as the sleeves).
 
 # %% [markdown]
-# ## VGG-16
+# ### VGG-16
 
 # %%
 vgg16 = VGG16(10)
@@ -1781,7 +1789,7 @@ display_results(
 # The model struggles with "knitwear" and "shirts," showing F1-scores of 54% and 46% respectively (these classes had lower precision and recall). Looking at the confusion matrix, the model seems to have issues distinguishing between knitwear, shirts and tees — similar to the MLP model, but to a lesser extent. "Shirts", in particular, has both low precision (53%) and recall (41%). Improvements are needed for better handling of these underperforming categories.
 
 # %% [markdown]
-# ## VGG-16 Pretrained
+# ### VGG-16 Pretrained
 
 # %%
 vgg16_pretrained = make_vgg16_pretrained()
@@ -1827,7 +1835,7 @@ display_results(
 # However, "knitwear" was the lowest-performing category, with an F1-score of 72%. Looking at the confusion matrix, the model seems to sometimes misclassify knitwear as either jackets or tees. Similarly, the model sometimes misclassifies tees as knitwear. Despite this, the model shows excellent results overall, performing robustly across most categories with little variance in precision and recall between classes.
 
 # %% [markdown]
-# ## Tensorboard
+# ### Tensorboard
 #
 # The following cell runs Tensorboard with the train and validation loss data within the notebook. Note that this will not work on Kaggle (but it does work on Google Colab) — if you are using Kaggle, you will have to download the logs and run Tensorboard locally. For convenience, the plots have already been included in this notebook as images in the previous sections.
 
@@ -1836,7 +1844,7 @@ display_results(
 # %tensorboard --logdir runs
 
 # %% [markdown]
-# # Conclusion
+# ## Conclusion
 #
 # The pretrained VGG-16 model appears to have resulted in the best performance, with an overall accuracy of 95% and a macro average F1-score of 93%. The custom VGG-16 model had decent performance but falls behind, with an overall accuracy of 83% and a macro average F1-score of 81%. This discrepancy demonstrates the impact of using a pretrained network versus training a model from scratch as the latter may require more extensive tuning and data to achieve optimal results.
 # Finally, the MLP model had an overall accuracy of 77% and a macro average F1-score of 74%.
