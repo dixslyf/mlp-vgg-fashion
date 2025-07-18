@@ -3,10 +3,20 @@ project:
 
 website:
   title: "A Comparison of Multilayer Perceptron and VGG-16 Models for Fashion Image Classification"
+  description: "An analysis of three neural network models (multilayer perceptron, custom VGG-16 implementation and fine-tuned pre-trained VGG-16) implemented in PyTorch for classifying images from a fashion dataset."
 
 format:
   html:
+    date: 2024-10-20
+    date-modified: 2025-07-18
+    author: Dixon Sean Low Yan Feng
     toc: true
+    code-links: repo
+    other-links:
+      - text: dixslyf's Website
+        href: "https://www.dixslyf.dev"
+        icon: person
+        target: "_blank"
     execute:
       eval: false
     smooth-scroll: true
