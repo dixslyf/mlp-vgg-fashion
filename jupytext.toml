@@ -1,1 +1,5 @@
 cell_metadata_filter="-all"
+
+[formats]
+"notebooks/" = "ipynb"
+"src/" = "py:percent"
