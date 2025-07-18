@@ -22,11 +22,13 @@ format:
       eval: false
     smooth-scroll: true
     theme:
-      light: flatly
-      dark: darkly
+      light:
+        - flatly
+        - styles/main.scss
+      dark:
+        - darkly
+        - styles/main.scss
     respect-user-color-scheme: true
     filters:
       - quarto
       - filters/wrap-cell-output.lua
-    css:
-      - styles/main.css

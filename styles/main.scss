@@ -1,0 +1,45 @@
+/*-- scss:uses --*/
+@use "sass:color";
+
+/*-- scss:rules --*/
+.cell-output-container {
+  overflow: scroll;
+  max-height: 20em;
+
+  padding: 0.125rem 0.25rem;
+  margin-block-end: 1rem;
+
+  /* Scroll shadows based on: https://css-tricks.com/books/greatest-css-tricks/scroll-shadows/ */
+  background:
+    linear-gradient($body-bg 30%, rgba(0, 0, 0, 0)) center top,
+    linear-gradient(rgba(0, 0, 0, 0), $body-bg 70%) center bottom,
+    radial-gradient(
+        farthest-side at 50% 0,
+        color.change($body-color, $alpha: 10%),
+        rgba(0, 0, 0, 0)
+      )
+      center top,
+    radial-gradient(
+        farthest-side at 50% 100%,
+        color.change($body-color, $alpha: 10%),
+        rgba(0, 0, 0, 0)
+      )
+      center bottom;
+
+  background-repeat: no-repeat;
+  background-size:
+    100% 2.5rem,
+    100% 2.5rem,
+    100% 1rem,
+    100% 1rem;
+  background-attachment: local, local, scroll, scroll;
+}
+
+.cell-output-container pre {
+  overflow: visible;
+  margin-block: 0;
+}
+
+.cell-output-container pre code {
+  padding: 0;
+}
