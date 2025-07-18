@@ -14,3 +14,8 @@ format:
       light: flatly
       dark: darkly
     respect-user-color-scheme: true
+    filters:
+      - quarto
+      - filters/wrap-cell-output.lua
+    css:
+      - styles/main.css
