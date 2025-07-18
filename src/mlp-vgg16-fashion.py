@@ -18,7 +18,11 @@
 # ## Introduction
 
 # %% [markdown]
-# This notebook develops three models for image classification on a dataset containing images of clothes and accessories. The three models are as follows:
+# This notebook develops three models for image classification on a dataset containing images of clothes and accessories
+# and was written as part of a university assignment on machine learning.
+# Unfortunately, the original source of the dataset is unknown — I and other students were only given a Google Drive link to the dataset.
+#
+# The three models are as follows:
 #
 # - A multilayer perceptron (MLP)
 #
@@ -28,7 +32,7 @@
 #
 # All models were implemented in PyTorch.
 #
-# The development of the models follows a typical machine learning pipeline:
+# The development of the models followed a typical machine learning pipeline:
 #
 # 1. **Data analysis:** Quick exploration of the dataset to understand its structure, class distribution and potential issues such as class imbalance.
 #
@@ -38,9 +42,9 @@
 #
 # 1. **Training:** Training of the models on the train split using the best set of hyperparameters determined by the hyperparameter tuning procedure.
 #
-# 1. **Evaluation:** Evaluation of the models on the test split using confusion matrices and metrics like accuracy and F1-score. Additionally, we will analyse each model's loss curves using Tensorboard. The performance of the models will be compared.
+# 1. **Evaluation:** Evaluation of the models on the test split using confusion matrices and metrics like accuracy and F1-score. Additionally, we will analyse each model's loss curves using Tensorboard and then compare the models' performance.
 #
-# Note that this notebook will take *several hours* to run. I highly recommend running it on Kaggle instead of Google Colab as Kaggle tends to be more generous with its GPU usage.
+# Note that this notebook will take *several hours* to run even with a GPU.
 
 # %% [markdown]
 # ## Preamble
@@ -156,6 +160,11 @@ gdown.cached_download(DATASET_GDRIVE_URL, DATASET_OUT_PATH, fuzzy=True, postproc
 
 # %%
 # !ls data
+
+# %% [markdown]
+# In case the Google Drive link is unavailable,
+# you may also find the dataset from this notebook's GitHub repository
+# [here](https://github.com/dixslyf/mlp-vgg-fashion/releases/latest/download/data.zip).
 
 # %% [markdown]
 # ### Custom `Dataset`
