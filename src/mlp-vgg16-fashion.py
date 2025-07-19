@@ -18,9 +18,8 @@
 # ## Introduction
 
 # %% [markdown]
-# This notebook develops three models for image classification on a dataset containing images of clothes and accessories
-# and was written as part of a university assignment on machine learning.
-# Unfortunately, the original source of the dataset is unknown — I and other students were only given a Google Drive link to the dataset.
+# This notebook develops three models for image classification on a dataset containing images of clothes and accessories.
+# It was written as part of a university assignment on machine learning.
 #
 # The three models are as follows:
 #
@@ -38,13 +37,13 @@
 #
 # 1. **Data preprocessing:** Preparation of the data by dividing the dataset into train, validation and test splits, normalising pixel values, label encoding the target feature and defining an undersampling procedure.
 #
-# 1. **Hyperparameter tuning:** Tuning of hyperparameters like learning rate, batch size and number of layers to optimise each model’s performance. Hyperparameter tuning was achieved using [Optuna](https://optuna.org/). Each model has different hyperparameters to tune — these will be discussed more extensively later.
+# 1. **Hyperparameter tuning:** Tuning of hyperparameters like learning rate, batch size and number of layers to optimise each model’s performance. Hyperparameter tuning was performed using [Optuna](https://optuna.org/). Each model has different hyperparameters to tune — these will be discussed more extensively later.
 #
 # 1. **Training:** Training of the models on the train split using the best set of hyperparameters determined by the hyperparameter tuning procedure.
 #
 # 1. **Evaluation:** Evaluation of the models on the test split using confusion matrices and metrics like accuracy and F1-score. Additionally, we will analyse each model's loss curves using Tensorboard and then compare the models' performance.
 #
-# Note that this notebook will take *several hours* to run even with a GPU.
+# Note that this notebook takes *several hours* to run even with a GPU.
 
 # %% [markdown]
 # ## Preamble
@@ -57,7 +56,7 @@
 # !pip install gdown
 
 # %% [markdown]
-# On Google Colab, Optuna is not installed, so we need to install it. However, on Kaggle, Optuna is installed by default, so we make the installation conditional.
+# Kaggle environments install Optuna by default. However, other environments may not, so we check and install Optuna if needed:
 
 # %%
 import importlib.util
@@ -98,7 +97,7 @@ from torch.utils.data import DataLoader, Dataset, Subset
 from tqdm import tqdm
 
 # %% [markdown]
-# We'll define some constants as configuration for this notebook. Feel free to adjust these constants to reduce the running time of the notebook:
+# We'll define some constants as configuration for this notebook. Feel free to adjust these constants to reduce the run time of the notebook:
 
 # %%
 # Variables for downloading and locating the dataset.
@@ -143,6 +142,9 @@ PRUNE_TRIALS: bool = True
 # ## Data
 #
 # This section includes the downloading of the dataset, preliminary analysis and preprocessing steps.
+#
+# The dataset contains various categories of fashion images.
+# Unfortunately, the origin of the dataset remains unknown — students were only given a Google Drive link to the dataset without any source provided.
 
 # %% [markdown]
 # ### Downloading the Dataset
@@ -155,15 +157,14 @@ gdown.cached_download(DATASET_GDRIVE_URL, DATASET_OUT_PATH, fuzzy=True, postproc
 
 # %% [markdown]
 # To verify that the dataset was downloaded and extracted, we'll use the shell's `ls` command to list the files in the `data` directory.
-# If the download fails for whatever reason (e.g., Google Drive link is down), please manually download and extract the dataset and set the `DATASET_ROOT_PATH` constant to the root directory of the dataset.
 # The following command should show `test  train  valid` if the dataset was successfully downloaded and extracted:
 
 # %%
 # !ls data
 
 # %% [markdown]
-# In case the Google Drive link is unavailable,
-# you may also find the dataset from this notebook's GitHub repository
+# If the download fails (e.g., because the Google Drive link is down), please manually download and extract the dataset and set the `DATASET_ROOT_PATH` constant to the root directory of the dataset.
+# You can find a copy of the dataset from this notebook's GitHub repository
 # [here](https://github.com/dixslyf/mlp-vgg16-fashion/releases/latest/download/data.zip).
 
 # %% [markdown]
@@ -364,7 +365,7 @@ class ClothesSubset(torch.utils.data.Subset):
 
 
 # %% [markdown]
-# We can now load the dataset and check various statistics about it, such as the length and categories.
+# We can now load and explore the dataset.
 #
 # **Note:** I intentionally ignore the test split because it is unlabelled and only has 8 samples, which makes it unuseful for evaluation. In the code cell below, I combine the train and validation splits together — later in the notebook, I perform my own train-validation-test split on this combined dataset.
 
@@ -419,7 +420,7 @@ print(f"Dimensions: {ds[0][0].shape}")
 print(f"Pixel values of the first image:\n{ds[0][0]}")
 
 # %% [markdown]
-# Unfortunately, looking at the distribution of the classes, there is an imbalanced class problem, where the "shoes" and "tees" classes have a much higher number of samples than the others. This could affect the performance of the models and make them biased towards "shoes" and "tees". Thankfully, the other classes are fairly balanced, so we can easily resolve this imbalance by undersampling the "shoes" and "tees" classes. However, this would lead to less training data, so I will also try out various data augmentations (e.g., horizontal flips, colour jitter) later during hyperparameter tuning to introduce more varied data.
+# Unfortunately, looking at the distribution of the classes, there is an imbalanced class problem — the "shoes" and "tees" classes have a much higher number of samples than the others. This could affect the performance of the models and make them biased towards these dominant classes. Thankfully, the other classes are fairly balanced, so we can resolve the issue by undersampling "shoes" and "tees". This will lead to less training data, however, so we will try out various data augmentations (e.g., horizontal flips, colour jitter) later during hyperparameter tuning to introduce more varied data.
 
 # %%
 sns.displot(list(ds.targets()), height=8, aspect=10/8)
@@ -473,7 +474,7 @@ set(ds.targets())
 #
 # As briefly mentioned earlier, I do not use the test split provided by the dataset as it only contains 8 samples and does not contain labels. I instead perform my own train-validation-test split with a ratio of `70:15:15`.
 #
-# The test set will be used for the final evaluation of the models — this split will **not** be touched at all during hyperparameter tuning and training to avoid leaking data from it, which would lead to overly optimistic results.
+# The test set will be used for the final evaluation of the models — we will **not** touch this split at all during hyperparameter tuning and training to avoid data leakage, which would lead to overly optimistic results.
 #
 # The validation set will be used to estimate the validation loss during training so that we can compare it to the training loss. This validation loss will also be used to stop training early when the generalisation loss stops improving to prevent the model from overfitting.
 #
@@ -513,9 +514,9 @@ print(f"Size of test split: {len(ds_test)}")
 # %% [markdown]
 # #### Undersampling
 #
-# As mentioned earlier, the dataset has a class imbalance problem, where "shoes" and "tees" have many more samples than the other classes. To combat this, I will use undersampling, by which "shoes" and "tees" samples have a lower chance of being sampled. We'll create a `WeightedRandomSampler` to give smaller weights to the "shoes" and "tee" classes. This sampler will be passed to a `DataLoader` later during training and hyperparameter tuning.
+# As mentioned earlier, the dataset has a class imbalance problem, where "shoes" and "tees" have significantly more samples than the other classes. To combat this issue, we will undersample the "shoes" and "tees" classes by using a `WeightedRandomSampler` to give smaller weights (i.e., lower probability of being sampled) to their instances. This sampler will be passed to a `DataLoader` later during training and hyperparameter tuning.
 #
-# **Note:** The weights are determined **only from the train split**. Otherwise, we would be leaking data from the test (and validation) split. We also need to be careful during hyperparameter tuning to not use the weights determined by the whole train split since each iteration of K-fold cross-validation will have its own train set. Hence, I define a function to create an undersampler from specified training labels so that each iteration of K-fold cross-validation can pass its own train split and create its own undersampler:
+# **Note:** The weights are determined **only from the train split**. Otherwise, we would be leaking data from the test and validation splits. We also need to be careful during hyperparameter tuning to not use the weights determined by the whole train split since each iteration of K-fold cross-validation will have its own train set. Hence, I define a function to create an undersampler from specified training labels so that each iteration of K-fold cross-validation can pass its own train split and create its own undersampler:
 
 # %%
 def make_undersampler(labels_train: torch.Tensor):
@@ -547,7 +548,7 @@ undersampler = make_undersampler(torch.tensor(np.fromiter(ds_train.targets(), dt
 #
 # This section contains definitions for each model (MLP, VGG-16 and pretrained VGG-16).
 #
-# Note that the MLP and VGG-16 that I implemented from scratch use the *lazy* variants of PyTorch's neural network modules, which defer the initialisation of layer parameters. The rationale is so that (a) I do not need to manually calculate the dimensions of the inputs and outputs for each layer, which is error-prone, and (b) the model will automatically detect the shape of the inputs without having to specify it during creation of the model. These make the model definitions much more readable and easier to prototype with. The trade-offs are that there is a slight overhead for initialising the layers during the first forward pass, and shape mismatch errors are detected later instead of during model initialisation.
+# Note that the MLP and VGG-16 that I implemented from scratch use the *lazy* variants of PyTorch's neural network modules, which defer the initialisation of layer parameters. The rationale is so that (a) I do not need to manually calculate the dimensions of the inputs and outputs for each layer, which is error-prone, and (b) the model will automatically detect the shape of the inputs. These make the model definitions much more readable and easier to prototype with. The trade-offs are that there is a slight overhead for initialising the layers during the first forward pass, and shape mismatch errors are detected later instead of during model initialisation.
 #
 # **Note:** For visualisations of the architectures of the final models, please see the Training and Evaluation section. The model architectures defined here are "semi-fixed" — some architectural decisions are treated as hyperparameters that need to be tuned, so the models are not instantiated until then.
 
@@ -556,11 +557,11 @@ undersampler = make_undersampler(torch.tensor(np.fromiter(ds_train.targets(), dt
 #
 # Since it is not obvious what MLP architecture would work best for the dataset, the `MultilayerPercecptron` class below provides a semi-fixed architecture and allows specifying the activation function to use and the number of layers and their corresponding sizes. These are treated as hyperparameters to be tuned.
 #
-# This MLP model adds a batch normalisation layer after each linear layer to stabilise training, reduce dependency on input scaling and serve as a regularisation effect. Ideally, whether to use batch normalisation or not would have been a hyperparameter to tune, but I decided not to make it configurable to reduce the hyperparameter search space and time.
+# This MLP model adds a batch normalisation layer after each linear layer to stabilise training, reduce dependency on input scaling and add a regularisation effect. Ideally, whether to use batch normalisation would have been a hyperparameter to tune, but I decided not to make it configurable to reduce the hyperparameter search space.
 #
-# Other architectural options I *could* have explored include: use of dropout layers, use of L2 regularisation and which weight initialisation technique to use. However, these were left unexplored to reduce the hyperparameter search space and time. MLPs are not well-suited for image tasks anyway (they do not consider the spacial structure of the pixels — you could randomly rearrange the pixels and the MLP would still yield the same performance results), so trying to explore this architectural space will likely be unfruitful.
+# Other architectural options I *could* have explored include: use of dropout layers, use of L2 regularisation and which weight initialisation technique to use. However, these were left unexplored to keep the hyperparameter search space small. MLPs are not well-suited for image tasks anyway (they do not consider the spacial structure of the pixels — you could randomly rearrange the pixels and the MLP would still yield the same performance results), so trying to explore this architectural space will likely be unfruitful.
 #
-# **Note:** Flattening of the input images is done outside of the `MultilayerPerceptron` class so that the class can be reused for other inputs that do not require flattening.
+# **Note:** Flattening of the input images is performed outside of the `MultilayerPerceptron` class so that the class can be reused for other inputs that do not require flattening.
 
 # %%
 class MultilayerPerceptron(torch.nn.Module):
@@ -605,7 +606,7 @@ class MultilayerPerceptron(torch.nn.Module):
 #
 # - When the model is instantiated, you can specify whether to use batch normalisation after each convolutional layer. This is a hyperparameter that will be tuned. During my initial tests, I found that the model struggled to learn the features of the input images without batch normalisation (the loss very quickly plateaued). This could be because VGG-16 is a considerably deep model and thus experiences the vanishing / exploding gradient problem — batch normalisation may help stabilise the gradients.
 #
-# - The VGG-16 model provided by PyTorch adds an additional adaptive average pooling layer before flattening the last feature map for the linear layers, presumably to allow the network to handle variable input image sizes by ensuring that the dimensions of the feature map before the linear layers is always the same. I replicate that addition in my implementation for the same reason, and to match my implementation closer with PyTorch's.
+# - The VGG-16 model provided by PyTorch adds an additional adaptive average pooling layer before flattening the last feature map for the linear layers, presumably to allow the network to handle variable input image sizes by ensuring that the dimensions of the feature map before the linear layers is always the same. I replicate that addition in my implementation for the same reason.
 
 # %% [markdown]
 # To reduce code repetition, I define a function to create a single VGG block. This function is loosely based on a similar function from [d2l.ai](https://d2l.ai/chapter_convolutional-modern/vgg.html).
@@ -665,12 +666,7 @@ class VGG16(torch.nn.Module):
 
 
 # %% [markdown]
-# **Note:** For visualisation of the architecture of the final model, please see the Training and Evaluation section.
-
-# %% [markdown]
 # ### VGG-16 Pretrained
-#
-# The architecture of VGG-16 has already been discussed in the previous section.
 #
 # For the pretrained VGG-16 model, we still need to perform a bit of surgery:
 #
@@ -678,7 +674,7 @@ class VGG16(torch.nn.Module):
 #
 # - The pretrained VGG-16 expects inputs with 3 channels, so the first convolutional layer expects that. Since I want to experiment with different numbers of input channels (e.g., grayscale images), I replace the first layer with a lazy convolutional layer (lazy means that the layer will automatically determine the number of input channels based on the first input).
 #
-# Performing these adjustments does mean that we lose some of the pretrained weights. However, most of the model still retains the pretrained weights, so it should not be an issue.
+# Performing these adjustments does mean that we lose some of the pretrained weights. However, most of them are still kept, so there should not be any issues.
 #
 # The following cell shows the untouched architecture of the pretrained VGG-16 model:
 
@@ -715,7 +711,7 @@ make_vgg16_pretrained()
 #
 # Before proceeding further, we'll define the necessary functions and classes needed ahead of time for hyperparameter tuning, training and evaluation so that the notebook is more readable. I suggest reading the documentation for each class to get a better understanding of their capabilities.
 #
-# First, I define classes for evaluation:
+# First, for evaluation:
 
 # %%
 @dataclass
@@ -881,7 +877,7 @@ class Evaluator:
 
 
 # %% [markdown]
-# For training (including training during hyperparameter tuning), I use early stopping based on the validation loss to prevent overfitting and save time if the model's performance starts to plateau. If the observed validation loss does not improve after a specified number of consecutive epochs (patience), the training process is stopped. The delta parameter specifies the minimum increase in validation loss for it to be counted as a lack of improvement.
+# For training, I use early stopping based on the validation loss to prevent overfitting and save time if the model's performance starts to plateau. If the observed validation loss does not improve after a specified number of consecutive epochs (patience), the training process is stopped. The delta parameter specifies the minimum increase in validation loss for it to be counted as a lack of improvement.
 
 # %%
 class ValidationLossEarlyStopper:
@@ -934,7 +930,7 @@ class ValidationLossEarlyStopper:
 
 
 # %% [markdown]
-# Finally, for the actual training of the models, I define a `Trainer` class. Notably, the `Trainer` class allows specifying transforms for data augmentation — this will be used to mitigate the class imbalance problem.
+# Finally, for the actual training of the models, I define a `Trainer` class. Notably, the `Trainer` class allows specifying transforms for data augmentation — this will be used to introduce more varied data.
 
 # %%
 ParamsT = Iterable[torch.Tensor] | Iterable[dict[str, Any]]
@@ -1286,7 +1282,7 @@ def train_eval_generic_params(
 # %% [markdown]
 # ## Hyperparameter Tuning
 #
-# I'll be using the Optuna library for hyperparameter tuning. Optuna uses Bayesian optimisation (at least by default — there are other optimisation methods it provides, but I used Bayesian optimisation) to find the best set of hyperparameters. Based on the performance from past hyperparameter sets, it tries to select promising hyperparameters. Unlike the traditional grid search and random search, Bayesian optimisation can reduce the number of trials needed to find an optimal set of hyperparameters.
+# I use the Optuna library for hyperparameter tuning. Optuna uses Bayesian optimisation (at least by default — it also provides other optimisation methods, but I used Bayesian optimisation) to find the best set of hyperparameters. Based on the performance from past hyperparameter sets, it tries to select promising hyperparameters. Unlike the traditional grid search and random search, Bayesian optimisation can reduce the number of trials needed to find an optimal set of hyperparameters.
 #
 # We first need to define an objective to optimise. I chose to maximise the macro average F1-score.
 # A quick explanation of what macro average F1 is:
@@ -1301,11 +1297,11 @@ def train_eval_generic_params(
 #
 # Why macro average F1?
 #
-# - It is one of the metrics that will be used for final evaluation with real-world implications.
+# - It is one of the metrics that will be used for final evaluation and has real-world implications.
 #
 # - Unlike accuracy, the macro average F1-score takes into account both precision and recall, so maximising it will likely lead to the model being less biased towards specific classes.
 #
-# - Minimising the loss does not always mean that the model meets real-world objectives.
+# - We could minimise the loss, but that does not always mean that the model meets real-world objectives.
 #
 # Although the models have the same objective to maximise, they have different hyperparameters. Some of these hyperparameters are general and applicable to all of the models (e.g., learning rate and batch size). These general hyperparameters are:
 #
@@ -1329,18 +1325,16 @@ def train_eval_generic_params(
 #
 # For the MLP and custom VGG-16 models, but _not_ the pretrained VGG-16 model, the following additional hyperparameters were tuned:
 #
-# - **Resize length:** Specifies the target size for input images — images are resized to a square. Resizing makes input dimensions consistent and reduces computational load. However, if images are resized to dimensions that are too small, we may lose too much information. In my case, I had to keep the maximum resize length rather small (224) because the GPU kept running out of memory.
+# - **Resize length:** Specifies the target size for input images — images are resized to a square. Resizing makes input dimensions consistent and reduces computational load. However, if images are resized to dimensions that are too small, we may lose too much information. Unfortunately, I had to keep the maximum resize length rather small (224) because the GPU kept running out of memory.
 #
 # - **Grayscale?:** Whether to convert images to grayscale. Using grayscale reduces input dimensionality and computational requirements, which is especially useful for the MLP model (since there are many fully-connected units). However, it removes colour information that could have been important.
 #
 # The reason these hyperparameters are not tuned for the pretrained VGG-16 model is because we need to use the same transformations that were used when it was trained on ImageNet. These transformations can be accessed from the pretrained weights, as documented [here](https://pytorch.org/vision/main/models/generated/torchvision.models.vgg16.html#torchvision.models.VGG16_Weights).
 
 # %% [markdown]
-# The function below creates and returns an objective function that suggests the general hyperparameters. It accepts a `model_constructor` callable argument that should wrap the creation of a model with model-specific hyperparameter suggestions.
+# The function below creates and returns an objective function that includes the logic for suggesting the general hyperparameters. The `model_from_params` argument should be a callable that creates a model with the hyperparameter suggestions. Since the dataset is quite small, the function uses K-fold cross-validation to get a more unbiased estimate of model performance — using a single validation set for hyperparameter tuning would risk overfitting.
 #
-# The function also implements K-fold cross-validation to get a more unbiased estimate of model performance. It works by dividing the training dataset into _K_ subsets called folds. During each iteration, the current fold becomes the test set while the others become the training set. Hence, each sample gets the chance to be used for both training (_K-1_ times) and testing (1 time), reducing variance in performance estimates. I prefer to use K-fold cross-validation in this case because the dataset is rather small — had I used a single validation set for hyperparameter tuning, there is a risk of overfitting to it.
-#
-# Finally, the hyperparameter tuning process will use *median pruning*, which compares the intermediate results of a trial (e.g., validation loss) against the median value of all previously completed trials at the same step. If a trial's results is worse than the median, it is unlikely to improve on the previous trials, so the trial is pruned, saving computational resources and time.
+# Finally, the hyperparameter tuning process uses *median pruning*, which compares the intermediate results of a trial (e.g., validation loss) against the median value of all previously completed trials at the same step. If a trial's results is worse than the median, it is unlikely to improve on the previous trials, so the trial is pruned to save computational resources and time.
 
 # %%
 def make_objective(
@@ -1462,7 +1456,7 @@ def make_objective(
 #
 # The hyperparameters for the MLP are as follows:
 #
-# - **Number of layers:** The number of layers the MLP has, including the input and output layers. A higher number of layers allows the model to capture more complex patterns. However, setting it too high can lead to overfitting, vanishing/exploding gradients and unrealistic computational requirements.
+# - **Number of layers:** The number of layers the MLP has, including the input and output layers. A higher number of layers allows the model to capture more complex patterns. However, setting it too high can lead to overfitting, vanishing/exploding gradients and infeasible computational requirements.
 #
 # - **Number of units in each layer:** The number of neurons in a specific layer. Each layer has its number of units tuned (except the first and last layers since those are fixed), so they may not always have the same number of units. Having more units increases the model's ability to learn complex patterns, but too many units can lead to overfitting or high computational requirements.
 #
@@ -1539,12 +1533,12 @@ mlp_study.best_params
 
 
 # %% [markdown]
-# Interestingly, the hyperparameter tuning process indicates that the MLP performed best without performing any data augmentation. However, images had to be resized to 64 by 64. The size of each layer also seems rather small.
+# Interestingly, the hyperparameter tuning results indicate that the MLP performed best without performing any data augmentations. However, images had to be resized to 64 by 64. The size of each layer also seems rather small.
 
 # %% [markdown]
 # ### VGG-16
 #
-# For the custom VGG16 model, there is only one model-specific hyperparameter to tune since the model's architecture is mostly fixed. The hyperparameter is whether to use batch normalisation. As mentioned earlier, I found that the model struggled to learn (loss would not decrease) when batch normalisation is not applied after each convolutional layer, which could be because the VGG-16 architecture is rather deep, so it is prone to the vanishing / exploding gradient problem. Batch normalisation may have helped to stabilise the gradients.
+# For the custom VGG16 model, there is only one model-specific hyperparameter to tune since the model's architecture is mostly fixed. The hyperparameter is whether to use batch normalisation. As mentioned earlier, I found that the model struggled to learn (loss would not decrease) without applying batch normalisation after each convolutional layer. The reason could be because the VGG-16 architecture is deep, so it is prone to the vanishing / exploding gradient problem. Batch normalisation may have helped to stabilise the gradients.
 
 # %%
 def suggest_vgg16_params(trial: optuna.trial.Trial):
@@ -1580,7 +1574,7 @@ vgg16_study.best_params
 
 
 # %% [markdown]
-# Like the MLP, the best hyperparameters include resizing of the images to 64 by 64. However, this time, VGG-16 seems to perform best when some data augmentation is applied (colour jittering and random horizontal flip). Furthermore, batch normalisation should be used.
+# Like the MLP, the best hyperparameters include resizing of the images to 64 by 64. However, this time, VGG-16 seems to perform best when some data augmentation is applied (colour jittering and random horizontal flip). The results also indicate that batch normalisation should be used.
 
 # %% [markdown]
 # ### VGG-16 Pretrained
@@ -1626,7 +1620,7 @@ vgg16_pretrained_study.best_params
 # %% [markdown]
 # ## Training and Evaluation
 #
-# Finally, with the best set of hyperparameters determined for each model, we can perform the real training and evaluation. I first define a helper function to display the evaluation results, including a classification report containing various metrics, a confusion matrix and a visualisation of some of the predictions.
+# Finally, with the best set of hyperparameters determined for each model, we can perform the actual training and evaluation. I first define a helper function to display the evaluation results, including a classification report containing various metrics, a confusion matrix and a visualisation of some of the predictions.
 
 # %%
 def display_results(
@@ -1668,7 +1662,7 @@ def display_results(
 
 
 # %% [markdown]
-# For keeping track of the training and validation losses using Tensorboard, I need to use PyTorch's `SummaryWriter`. Training and validation losses will be logged for each model using the train and validation loss hooks in the `Trainer`.
+# For keeping track of the training and validation losses using Tensorboard, we need to use PyTorch's `SummaryWriter`. Training and validation losses are logged for each model using the train and validation loss hooks in the `Trainer`.
 
 # %%
 writer = SummaryWriter()
@@ -1685,7 +1679,7 @@ writer.add_custom_scalars({
 })
 
 # %% [markdown]
-# As a quick recap, training of the models will use an undersampler to undersample the shoes and tees classes to mitigate the class imbalance problem. Training will also use early stopping based on the validation loss — if the validation loss stops improving after a certain number of epochs, the training will be stopped.
+# As a quick recap, we use an undersampler to undersample the shoes and tees classes to mitigate the class imbalance problem. Training will also use early stopping based on the validation loss — if the validation loss stops improving after a certain number of epochs, the training will be stopped.
 #
 # Evaluation will use the following metrics / tools:
 #
@@ -1741,16 +1735,14 @@ display_results(
 #
 # ![curve-mlp.png](attachment:4accfd39-e15f-4ffd-997f-6e8518d41c0d.png)
 #
-# The train loss starts higher than the validation loss, though they both decrease. However, the validation loss seems to have a lower rate of decrease than the train loss — eventually, the train loss becomes lower than the validation loss. The MLP model seems to struggle to generalise to the validation set despite learning from the training data, which could either be a sign of overfitting or perhaps the model is too simple to adequately capture the underlying patterns. It may also be that the resizing of images to 64 by 64 removed too much information, suggesting that more trials for hyperparameter tuning is needed.
+# The train loss starts higher than the validation loss, though they both decrease. However, the validation loss seems to have a lower rate of decrease than the train loss — eventually, the train loss becomes lower than the validation loss. The MLP model seems to struggle to generalise to the validation set despite learning from the training data, which could either be a sign of overfitting or perhaps the model is too simple to adequately capture the underlying patterns. It may also be that the resizing of images to 64 by 64 removed too much information, so maybe more trials for hyperparameter tuning is needed.
 
 # %% [markdown]
-# Nonetheless, the performance metrics for the MLP model show strong results for some classes but mixed outcomes for others. For instance, categories like "shoes," "accessories," and "jeans" perform exceptionally well, with F1-scores of 99%, 96%, and 97% respectively. This suggests that the model is highly effective at correctly classifying these categories and avoiding misclassifications.
-#
-# However, for classes like "knitwear" and "shirts", the MLP model struggles, with F1-scores of 25% and 48% respectively. These results indicate both low precision and recall, meaning that the model often misclassifies these items and fails to identify them correctly. If we look at the confusion matrix, we see that the model appears to struggle with differentiating between knitwear, shirts and tees. For example, it misclassified 17 tees as jackets, 22 tees as knitwear and 14 tees as shirts. However, considering how similar these items can be, this is not unexpected, especially since MLPs do not account for the order of the pixels in the input images.
+# Nonetheless, the performance metrics for the MLP model show strong results for some classes. For instance, categories like "shoes," "accessories," and "jeans" perform exceptionally well, with F1-scores of 99%, 96%, and 97% respectively. However, for classes like "knitwear" and "shirts", the MLP model struggles, with F1-scores of 25% and 48% respectively. These results indicate both low precision and recall; i.e., the model often misclassifies these items and fails to identify them correctly. If we look at the confusion matrix, we see that the model appears to struggle with differentiating between knitwear, shirts and tees. For example, it misclassified 17 tees as jackets, 22 tees as knitwear and 14 tees as shirts. However, considering how similar these items can be, this is not unexpected, especially since MLPs do not account for the order of the pixels in the input images.
 #
 # The accuracy of 77% indicates that the model's overall performance is not bad. The macro average F1-score of 74% shows that the model's performance across all classes is somewhat balanced. However, there is clearly still some room for improvement considering the misclassifications.
 #
-# Future improvements could focus on improving the model's ability to distinguish between knitwear, shirts and tees, perhaps using methods like patch-based learning to allow the model to focus on the specific areas of the images (such as the sleeves).
+# Future improvements should likely focus on improving the model's ability to distinguish between knitwear, shirts and tees. Perhaps we could explore patch-based learning to allow the model to focus on the specific areas of the images (such as the sleeves).
 
 # %% [markdown]
 # ### VGG-16
@@ -1790,12 +1782,12 @@ display_results(
 #
 # ![curve-vgg16.png](attachment:b324e84a-9bee-47b4-a1bd-04bd329ff750.png)
 #
-# The curve for the VGG-16 model looks good — both train and validation losses decrease and eventually converge. There does not seem to be any sign of overfitting as the validation loss does not increase to become higher than the train loss. This indicates that the learning rate and other hyperparameters related to the optimiser were well-suited.
+# The curve for the VGG-16 model looks good — both train and validation losses decrease and eventually converge. There does not seem to be any sign of overfitting as the validation loss does not increase to become higher than the train loss.
 
 # %% [markdown]
 # The custom VGG-16 model achieved an overall accuracy of 83% and a macro average F1-score of 81%. This indicates generally balanced performance across classes. However, this is worse than I expected since the VGG-16 architecture is deep and should be able to handle fairly complex patterns. High-performing classes include "accessories", "jeans", "shoes", and "shorts", with F1-scores above 95%.
 #
-# The model struggles with "knitwear" and "shirts," showing F1-scores of 54% and 46% respectively (these classes had lower precision and recall). Looking at the confusion matrix, the model seems to have issues distinguishing between knitwear, shirts and tees — similar to the MLP model, but to a lesser extent. "Shirts", in particular, has both low precision (53%) and recall (41%). Improvements are needed for better handling of these underperforming categories.
+# The model struggles with "knitwear" and "shirts," showing F1-scores of 54% and 46% respectively. Looking at the confusion matrix, the model seems to have issues distinguishing between knitwear, shirts and tees — similar to the MLP model, but to a lesser extent. "Shirts", in particular, has both low precision (53%) and recall (41%). Like the MLP, if we want to improve the model's performance, we should focus on distinguishing between these classes.
 
 # %% [markdown]
 # ### VGG-16 Pretrained
@@ -1841,7 +1833,7 @@ display_results(
 # %% [markdown]
 # The fine-tuned pretrained VGG-16 model achieved an impressive overall accuracy of 95% and a macro average F1-score of 93%. Classes such as "accessories," "jeans," "shoes," and "shorts" had near-perfect performance, with F1-scores around 99% or 100%. "Tees" and "jackets" also performed well, both achieving F1-scores above 90%, indicating strong precision and recall.
 #
-# However, "knitwear" was the lowest-performing category, with an F1-score of 72%. Looking at the confusion matrix, the model seems to sometimes misclassify knitwear as either jackets or tees. Similarly, the model sometimes misclassifies tees as knitwear. Despite this, the model shows excellent results overall, performing robustly across most categories with little variance in precision and recall between classes.
+# However, "knitwear" was the lowest-performing category, with an F1-score of 72%. Looking at the confusion matrix, the model seems to sometimes misclassify knitwear as either jackets or tees. Similarly, the model sometimes misclassifies tees as knitwear. Despite this, the model shows excellent results overall with little variance in precision and recall between classes.
 
 # %% [markdown]
 # ### Tensorboard
@@ -1855,9 +1847,10 @@ display_results(
 # %% [markdown]
 # ## Conclusion
 #
-# The pretrained VGG-16 model appears to have resulted in the best performance, with an overall accuracy of 95% and a macro average F1-score of 93%. The custom VGG-16 model had decent performance but falls behind, with an overall accuracy of 83% and a macro average F1-score of 81%. This discrepancy demonstrates the impact of using a pretrained network versus training a model from scratch as the latter may require more extensive tuning and data to achieve optimal results.
-# Finally, the MLP model had an overall accuracy of 77% and a macro average F1-score of 74%.
+# The pretrained VGG-16 model achieved the best performance out of the three models, with an overall accuracy of 95% and a macro average F1-score of 93%. The custom VGG-16 model had decent performance but falls behind, with an overall accuracy of 83% and a macro average F1-score of 81%. This result is expected, however, since training a model from scratch generally requires more extensive tuning and data to achieve optimal results than tuning a pre-trained model, which would already have learned common patterns from its previous training.
 #
-# As expected, the pretrained VGG-16 model achieved the best results since it had already learned common patterns from its previous training. Furthremore, since MLPs are unable to understand the spacial structure of images (they essentially ignore the order of pixels), the fact that the MLP model performed the worst falls within expectations. For all models, however, there seems to be a trend where the model struggles to differentiate between certain classes (albeit to different extents), especially knitwear, shirts and tees. Considering how similar images in these classes can be, the confusion is not unexpected.
+# Lastly, the MLP model had an overall accuracy of 77% and a macro average F1-score of 74%. Since MLPs are unable to understand the spacial structure of images (they essentially ignore the order of pixels), the fact that the MLP performed the worst is not surprising.
 #
-# For future work, the focus should be on improving model performance for the underperforming classes. Although hyperparameter tuning was done, there are still many hyperparameters that were unexplored (e.g., use of dropout and regularisation, additional data augmentation transformations). Furthermore, only 25 trials were used for hyperparameter tuning — increasing the number of trials may lead to better hyperparameters that improve model performance. We may also want to explore assigning higher penalties to misclassifications (cost-sensitive learning), especially for the underperforming classes.
+# All models seem to struggle with differentiating certain classes (to different extents), especially knitwear, shirts and tees. Considering how similar images in these classes can be, though, the confusion is not unexpected.
+#
+# For future work, there is clearly room for improvement for the underperforming classes. Although hyperparameter tuning was done, there were still many hyperparameters left unexplored (e.g., use of dropout and regularisation, additional data augmentation transformations). Furthermore, only 25 trials were used for hyperparameter tuning — increasing the number of trials may lead to better hyperparameters that improve model performance. It may also be worth exploring cost-sentitive learning by assigning higher penalties to misclassifications, especially for the underperforming classes.
