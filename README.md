@@ -22,9 +22,9 @@ It is stored in this repository in `py:percent` format (using Jupytext for conve
 for easier version control.
 
 The full notebook (with outputs), dataset, training logs and model files
-are available in the [latest release](https://github.com/dixslyf/mlp-vgg-fashion/releases/latest).
+are available in the [latest release](https://github.com/dixslyf/mlp-vgg16-fashion/releases/latest).
 
-You can view a rendered, static version of the notebook [here](https://dixslyf.github.io/mlp-vgg-fashion/).
+You can view a rendered, static version of the notebook [here](https://dixslyf.github.io/mlp-vgg16-fashion/).
 
 ## Run Environment
 
@@ -46,7 +46,7 @@ To build and view the site locally:
 2. Clone this repository:
 
     ```sh
-    git clone https://github.com/dixslyf/mlp-vgg-fashion.git
+    git clone https://github.com/dixslyf/mlp-vgg16-fashion.git
     ```
 
 3. Download the full-output notebook from the latest release.

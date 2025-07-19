@@ -164,7 +164,7 @@ gdown.cached_download(DATASET_GDRIVE_URL, DATASET_OUT_PATH, fuzzy=True, postproc
 # %% [markdown]
 # In case the Google Drive link is unavailable,
 # you may also find the dataset from this notebook's GitHub repository
-# [here](https://github.com/dixslyf/mlp-vgg-fashion/releases/latest/download/data.zip).
+# [here](https://github.com/dixslyf/mlp-vgg16-fashion/releases/latest/download/data.zip).
 
 # %% [markdown]
 # ### Custom `Dataset`
