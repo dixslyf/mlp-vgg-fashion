@@ -909,7 +909,7 @@ tensor([[[0.9490, 0.9490, 0.9490,  ..., 0.9490, 0.9490, 0.9490],
 <section id="splitting-the-dataset" class="level4">
 <h4 class="anchored" data-anchor-id="splitting-the-dataset">Splitting the Dataset</h4>
 <p>As briefly mentioned earlier, I do not use the test split provided by the dataset as it only contains 8 samples and does not contain labels. I instead perform my own train-validation-test split with a ratio of <code>70:15:15</code>.</p>
-<p>The test set will be used for the final evaluation of the models — we will <strong>not</strong> be touch this split at all during hyperparameter tuning and training to avoid data leakage, which would lead to overly optimistic results.</p>
+<p>The test set will be used for the final evaluation of the models — we will <strong>not</strong> touch this split at all during hyperparameter tuning and training to avoid data leakage, which would lead to overly optimistic results.</p>
 <p>The validation set will be used to estimate the validation loss during training so that we can compare it to the training loss. This validation loss will also be used to stop training early when the generalisation loss stops improving to prevent the model from overfitting.</p>
 <p>The training set will, of course, be used for training. However, it will also be used for hyperparameter tuning. Note that the validation set will not be used for hyperparameter tuning. I prefer to use K-fold cross-validation to further split the training set into train and validation folds during hyperparameter tuning to get a more unbiased estimate of model performance — if I re-use the validation set for hyperparameter tuning, there is a risk of overfitting to it, especially since the dataset is rather small.</p>
 <div id="64a06171" class="cell">
