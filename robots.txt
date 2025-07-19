@@ -1,1 +1,1 @@
-Sitemap: https://dixslyf.github.io/mlp-vgg-fashion/sitemap.xml
+Sitemap: https://dixslyf.github.io/mlp-vgg16-fashion/sitemap.xml
