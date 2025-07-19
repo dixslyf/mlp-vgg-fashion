@@ -12,13 +12,13 @@ The models compared are:
 
 All models are implemented in PyTorch.
 
-The dataset used for this project was distributed to students via a Google Drive link.
+The dataset used for this project was distributed to students via a [Google Drive link](https://drive.google.com/file/d/1nWRm-Npq_QE0j_sHyVVxVEx2Rb0Lc1zU/view).
 Unfortunately, no source or documentation was provided, so its origin remains unknown.
 
 ## Notebook
 
 All code is contained in a single Jupyter notebook.
-It is stored in this repository in `py:percent` format (using Jupytext for conversion)
+It is stored in this repository in `py:percent` format (using [Jupytext](https://jupytext.readthedocs.io/) for conversion)
 for easier version control.
 
 The full notebook (with outputs), dataset, training logs and model files
