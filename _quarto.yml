@@ -1,5 +1,7 @@
 project:
   type: website
+  render:
+    - notebooks/mlp-vgg16-fashion.ipynb
 
 website:
   title: "A Comparison of Multilayer Perceptron and VGG-16 Models for Fashion Image Classification"
