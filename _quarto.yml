@@ -31,5 +31,4 @@ format:
         - styles/main.scss
     respect-user-color-scheme: true
     filters:
-      - quarto
-      - filters/wrap-cell-output.lua
+      - dixslyf/group-html-cell-outputs

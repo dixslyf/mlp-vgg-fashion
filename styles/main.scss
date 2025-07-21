@@ -3,11 +3,7 @@
 
 /*-- scss:rules --*/
 .cell-output-container {
-  overflow: scroll;
   max-height: 20em;
-
-  padding: 0.125rem 0.25rem;
-  margin-block-end: 1rem;
 
   /* Scroll shadows based on: https://css-tricks.com/books/greatest-css-tricks/scroll-shadows/ */
   background:
@@ -33,13 +29,4 @@
     100% 1rem,
     100% 1rem;
   background-attachment: local, local, scroll, scroll;
-}
-
-.cell-output-container pre {
-  overflow: visible;
-  margin-block: 0;
-}
-
-.cell-output-container pre code {
-  padding: 0;
 }
