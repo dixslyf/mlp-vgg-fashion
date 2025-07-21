@@ -53,7 +53,13 @@ To build and view the site locally:
 
 4. Place the notebook at the following path: `<repo>/notebooks/mlp-vgg16-fashion.ipynb`.
 
-5. Render the site:
+5. Install the required extensions:
+
+   ```sh
+   quarto add dixslyf/quarto-group-html-cell-outputs@v1.0.1
+   ```
+
+6. Render the site:
 
     ```sh
     quarto render
@@ -64,3 +70,12 @@ To build and view the site locally:
     ```sh
     quarto preview
     ```
+
+Alternatively, if you have [`just`](https://github.com/casey/just) installed,
+you may replace steps 5 -- 6 with the following recipes:
+
+- `setup-extensions`: Installs the required extension(s).
+
+- `preview-site`: Preview the site after installing the required extension(s).
+
+- `render-site`: Render the site after installing the required extension(s).
