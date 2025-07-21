@@ -1,0 +1,35 @@
+.cell-output-container {
+    overflow: auto;
+
+    padding: 0.125rem 0.25rem;
+    margin-block-end: 1rem;
+}
+
+.cell-output-container pre {
+    overflow: visible;
+    margin-block: 0;
+}
+
+.cell-output-container pre code {
+    padding: 0;
+}
+
+/*
+ * Undo https://github.com/quarto-dev/quarto-cli/blob/b075babd7a180e8a5799cb43fed475f614106df1/src/resources/formats/html/_quarto-rules.scss#L384
+ * We already handle scrolling in `.cell-output-container`.
+ */
+.cell-output-container .cell-output-display {
+    overflow-x: visible;
+}
+
+/* Add top margins to figure / widget if there is an output block before it. */
+.cell-output-container .cell-output + .cell-output-display figure,
+.cell-output-container .cell-output + .cell-output-display .widget-subarea {
+    margin-block-start: 1rem;
+}
+
+/* Quarto always adds a margin after figures, so we need to remove it for the last figure. */
+.cell-output-container .cell-output-display:last-child figure,
+.cell-output-container .cell-output-display:last-child .widget-subarea {
+    margin-bottom: 0;
+}
