@@ -8,3 +8,6 @@ preview-site: setup-extensions
 
 render-site: setup-extensions
     quarto render {{notebook-path}}
+
+publish-site: setup-extensions
+    quarto publish gh-pages
